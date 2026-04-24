@@ -336,6 +336,85 @@ let loadingTasks = false;
 let currentPage=1, sortField='dateAdded', sortDir=-1;
 let chartEstados=null, chartAgentes=null, chartTags=null, chartTareasOwner=null;
 let activeShortcut=null, autoRefreshTimer=null, countdownTimer=null, nextRefreshAt=null;
+
+// ── Leader election (una sola pestaña hace sync) ──────────────
+const TAB_ID = Math.random().toString(36).slice(2);
+const LEADER_KEY = 'ora_leader_id';
+const LEADER_TS_KEY = 'ora_leader_ts';
+const LEADER_HEARTBEAT = 4000; // 4s
+const LEADER_TIMEOUT = 10000;  // 10s sin heartbeat = lider muerto
+let isLeader = false;
+let leaderTimer = null;
+const bc = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('ora_dashboard') : null;
+
+function tryBecomeLeader(){
+  const lastTs = parseInt(localStorage.getItem(LEADER_TS_KEY)||'0');
+  const leaderId = localStorage.getItem(LEADER_KEY);
+  const now = Date.now();
+  // Si no hay lider o el lider lleva más de 10s sin latir → tomar el control
+  if(!leaderId || (now - lastTs) > LEADER_TIMEOUT){
+    localStorage.setItem(LEADER_KEY, TAB_ID);
+    localStorage.setItem(LEADER_TS_KEY, now.toString());
+    isLeader = true;
+    startLeaderHeartbeat();
+    console.log('🟢 Esta pestaña es LÍDER (sync activo)');
+    setSyncState(false, 'Líder ✓');
+  } else if(leaderId === TAB_ID){
+    isLeader = true;
+  } else {
+    isLeader = false;
+    console.log('👁 Esta pestaña es OBSERVADORA (recibe datos)');
+    setSyncState(false, 'Observadora');
+  }
+}
+
+function startLeaderHeartbeat(){
+  if(leaderTimer) clearInterval(leaderTimer);
+  leaderTimer = setInterval(()=>{
+    if(isLeader){
+      localStorage.setItem(LEADER_TS_KEY, Date.now().toString());
+    }
+  }, LEADER_HEARTBEAT);
+}
+
+// Escuchar datos del lider via BroadcastChannel
+if(bc){
+  bc.onmessage = (evt)=>{
+    if(evt.data.type === 'SYNC_DATA' && !isLeader){
+      // Recibir datos del lider sin hacer llamadas API
+      allContacts = evt.data.contacts;
+      if(evt.data.taskCache) Object.assign(taskCache, evt.data.taskCache);
+      saveCache(allContacts);
+      safeText('last-update', evt.data.ts);
+      safeText('kpi-pages', evt.data.pages||'');
+      updateKPIs();buildAllFilters();applyFilters();
+      updateTasksKPI();updateTareasOwnerChart();updatePanelSinTareas();
+      setStatus(`📡 Datos recibidos del líder — ${allContacts.length} contactos`,'success');
+    }
+  };
+}
+
+// Broadcast datos a las otras pestañas
+function broadcastSyncData(pages){
+  if(bc && isLeader){
+    bc.postMessage({
+      type: 'SYNC_DATA',
+      contacts: allContacts,
+      taskCache: taskCache,
+      ts: new Date().toLocaleString('es-CO'),
+      pages
+    });
+  }
+}
+
+// Al cerrar la pestaña lider, liberar el liderazgo
+window.addEventListener('beforeunload', ()=>{
+  if(isLeader){
+    localStorage.removeItem(LEADER_KEY);
+    localStorage.removeItem(LEADER_TS_KEY);
+  }
+  if(leaderTimer) clearInterval(leaderTimer);
+});
 let newContactIds=new Set();
 let totalTareasAsignadas=0;
 const selections={estado:new Set(),tag:new Set(),asignado:new Set(),canal:new Set()};
@@ -450,13 +529,34 @@ function doLogout(){
 async function startDashboard(){
   const token=getToken();
   if(!token){setStatus('⚠ Pega tu token primero.','error');return;}
+
+  // Determinar si esta pestaña será líder o observadora
+  tryBecomeLeader();
+
+  // Siempre cargar caché para mostrar datos inmediatamente
   const cached=loadCache();
   if(cached&&cached.contacts.length){
     allContacts=cached.contacts;
     const ts=cached.ts?new Date(cached.ts).toLocaleString('es-CO'):'?';
     safeText('last-update',ts);
-    setStatus(`💾 ${allContacts.length} contactos desde caché. Sincronizando...`,'syncing');
     updateKPIs();buildAllFilters();applyFilters();
+    updateTasksKPI();
+  }
+
+  if(!isLeader){
+    // Observadora: solo mostrar caché y esperar datos del líder
+    setStatus(`👁 Pestaña observadora — ${allContacts.length} contactos desde caché. Esperando sync del líder...`,'syncing');
+    // Reintentar liderazgo cada 15s por si el líder se cierra
+    setInterval(()=>{
+      tryBecomeLeader();
+      if(isLeader){ scheduleAutoRefresh(); queueAllContacts(allContacts); }
+    }, 15000);
+    return;
+  }
+
+  // Solo el líder hace sync
+  if(cached&&cached.contacts.length){
+    setStatus(`💾 ${allContacts.length} contactos desde caché. Sincronizando...`,'syncing');
     await syncInBackground(true);
   } else {
     setStatus('⏳ Cargando todos los contactos...','loading');
@@ -473,9 +573,11 @@ async function startDashboard(){
       updateKPIs();buildAllFilters();applyFilters();
       setSyncState(false,'Listo ✓');
       setProgress(100);setTimeout(()=>setProgress(0),600);
+      broadcastSyncData(pages);
     }catch(e){setStatus(`❌ Error: ${e.message}`,'error');setProgress(0);setSyncState(false,'Error');return;}
   }
   scheduleAutoRefresh();
+  queueAllContacts(allContacts);
 }
 
 async function syncInBackground(silent=false){
@@ -515,6 +617,8 @@ async function syncInBackground(silent=false){
     queueAllContacts(allContacts);
     setSyncState(false,'Sincronizado ✓');
     setProgress(100);setTimeout(()=>setProgress(0),500);
+    // Enviar datos a pestañas observadoras
+    broadcastSyncData(pages);
   }catch(e){
     setSyncState(false,'Error sync');
     setStatus(`⚠ Error en sync: ${e.message}`,'error');
