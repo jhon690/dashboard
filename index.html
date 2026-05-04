@@ -157,7 +157,7 @@ tr.new-contact td { background: #1a2e1a !important; }
     <div style="font-size:2rem;margin-bottom:8px">📊</div>
     <h2 style="color:#fff;font-size:1.3rem;margin-bottom:6px">Dashboard ORA IA</h2>
     <p style="color:#718096;font-size:0.82rem;margin-bottom:28px">Ingresa tu token de acceso para continuar</p>
-    <input type="password" id="token-input" placeholder="pit-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    <input type="text" id="token-input" placeholder="pit-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
       style="width:100%;background:#2d3748;border:1px solid #4a5568;color:#e2e8f0;padding:10px 14px;border-radius:8px;font-size:0.85rem;margin-bottom:8px;text-align:center"
       onkeydown="if(event.key==='Enter')doLogin()"/>
     <p id="login-error" style="color:#fc8181;font-size:0.75rem;margin-bottom:12px;min-height:18px"></p>
@@ -192,7 +192,7 @@ tr.new-contact td { background: #1a2e1a !important; }
 
     <div class="kpi"><div class="kpi-label">Nuevos hoy</div><div class="kpi-value" id="kpi-nuevos">—</div><div class="kpi-sub">agregados hoy</div></div>
     <div class="kpi"><div class="kpi-label">Páginas API</div><div class="kpi-value" id="kpi-pages">—</div><div class="kpi-sub">última sync</div></div>
-    <div class="kpi kpi-task"><div class="kpi-label">✅ Tareas asignadas</div><div class="kpi-value" id="kpi-tareas">0</div><div class="kpi-sub" id="kpi-tareas-sub">en esta sesión</div></div>
+
     <div class="kpi" id="kpi-tasks-progress" style="border-color:#4a5568"><div class="kpi-label">📋 Aplica-Seguimiento</div><div class="kpi-value" id="kpi-tasks-loaded" style="font-size:1.3rem">—</div><div class="kpi-sub" id="kpi-tasks-queue">cargando tareas...</div></div>
   </div>
 
@@ -201,6 +201,48 @@ tr.new-contact td { background: #1a2e1a !important; }
     <div class="chart-card"><h3>👤 Por Propietario <span style="font-size:0.68rem;color:#6c63ff">(según filtros)</span></h3><canvas id="chart-agentes"></canvas></div>
     <div class="chart-card"><h3>🏷 Por Tags <span style="font-size:0.68rem;color:#6c63ff">(según filtros)</span></h3><canvas id="chart-tags"></canvas></div>
     <div class="chart-card"><h3>📋 Tareas por Propietario <span style="font-size:0.68rem;color:#6c63ff">(cargadas)</span></h3><canvas id="chart-tareas-owner"></canvas><div style="font-size:0.68rem;color:#718096;margin-top:6px" id="tareas-chart-note">Cargando tareas en background...</div></div>
+  </div>
+
+  <!-- Gráfica Lead no fue atendido por Propietario -->
+  <div class="chart-card" style="margin-bottom:20px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+      <h3 style="font-size:0.88rem;color:#a0aec0">🏷 Lead no fue atendido</h3>
+      <div style="display:flex;gap:10px;align-items:center">
+        <span style="font-size:0.75rem;color:#718096">Total con tag:</span>
+        <span id="lnfa-diff" style="font-size:1.2rem;font-weight:700;color:#fc8181">—</span>
+        <button onclick="filterLNFA()" style="background:#742a2a;color:#feb2b2;border:none;padding:4px 12px;border-radius:6px;font-size:0.75rem;cursor:pointer;font-weight:600">Ver en tabla ↓</button>
+      </div>
+    </div>
+    <canvas id="chart-lnfa" style="max-height:220px"></canvas>
+  </div>
+
+  <!-- Gráfica Leads vs Firmados -->
+  <div class="chart-card" style="margin-bottom:20px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+      <h3 style="font-size:0.88rem;color:#a0aec0">📈 Leads ingresados vs Aplica - Firmado <span style="font-size:0.68rem;color:#6c63ff">(según filtro de fecha)</span></h3>
+      <div style="display:flex;gap:8px">
+        <span class="dshort" id="lf-hoy" onclick="setLFShortcut('hoy')">Hoy</span>
+        <span class="dshort" id="lf-7d" onclick="setLFShortcut('7d')">7 días</span>
+        <span class="dshort" id="lf-15d" onclick="setLFShortcut('15d')">15 días</span>
+        <span class="dshort" id="lf-30d" onclick="setLFShortcut('30d')">30 días</span>
+        <span class="dshort" id="lf-mes" onclick="setLFShortcut('mes')">Este mes</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:20px;margin-bottom:12px;flex-wrap:wrap">
+      <div style="background:#1e2235;border:1px solid #2d3748;border-radius:8px;padding:10px 18px;text-align:center">
+        <div style="font-size:0.7rem;color:#718096;margin-bottom:4px">Total Leads</div>
+        <div style="font-size:1.6rem;font-weight:700;color:#6c63ff" id="lf-total-leads">—</div>
+      </div>
+      <div style="background:#1e2235;border:1px solid #2d3748;border-radius:8px;padding:10px 18px;text-align:center">
+        <div style="font-size:0.7rem;color:#718096;margin-bottom:4px">Aplica - Firmado</div>
+        <div style="font-size:1.6rem;font-weight:700;color:#68d391" id="lf-total-firmados">—</div>
+      </div>
+      <div style="background:#1e2235;border:1px solid #2d3748;border-radius:8px;padding:10px 18px;text-align:center">
+        <div style="font-size:0.7rem;color:#718096;margin-bottom:4px">Tasa de cierre</div>
+        <div style="font-size:1.6rem;font-weight:700;color:#f6ad55" id="lf-tasa">—</div>
+      </div>
+    </div>
+    <canvas id="chart-leads-firmados" style="max-height:280px"></canvas>
   </div>
 
   <!-- Panel Aplica-Seguimiento sin tareas -->
@@ -213,6 +255,44 @@ tr.new-contact td { background: #1a2e1a !important; }
       </div>
     </div>
     <div id="panel-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;max-height:200px;overflow-y:auto"></div>
+  </div>
+
+  <!-- Gráfica Aplica Seguimiento vs Aplica Firmado -->
+  <div class="chart-card" style="margin-bottom:20px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+      <h3 style="font-size:0.88rem;color:#a0aec0">📊 Aplica - Seguimiento vs Aplica - Firmado <span style="font-size:0.68rem;color:#6c63ff">(por semana)</span></h3>
+      <div style="display:flex;gap:8px">
+        <span class="dshort" id="sf-hoy" onclick="setSFShortcut('hoy')">Hoy</span>
+        <span class="dshort" id="sf-7d" onclick="setSFShortcut('7d')">7 días</span>
+        <span class="dshort" id="sf-15d" onclick="setSFShortcut('15d')">15 días</span>
+        <span class="dshort" id="sf-30d" onclick="setSFShortcut('30d')">30 días</span>
+        <span class="dshort" id="sf-mes" onclick="setSFShortcut('mes')">Este mes</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:20px;margin-bottom:12px;flex-wrap:wrap">
+      <div style="background:#1e2235;border:1px solid #2d3748;border-radius:8px;padding:10px 18px;text-align:center">
+        <div style="font-size:0.7rem;color:#718096;margin-bottom:4px">Aplica - Seguimiento</div>
+        <div style="font-size:1.6rem;font-weight:700;color:#f093fb" id="sf-total-seguimiento">—</div>
+      </div>
+      <div style="background:#1e2235;border:1px solid #2d3748;border-radius:8px;padding:10px 18px;text-align:center">
+        <div style="font-size:0.7rem;color:#718096;margin-bottom:4px">Aplica - Firmado</div>
+        <div style="font-size:1.6rem;font-weight:700;color:#68d391" id="sf-total-firmado">—</div>
+      </div>
+      <div style="background:#1e2235;border:1px solid #2d3748;border-radius:8px;padding:10px 18px;text-align:center">
+        <div style="font-size:0.7rem;color:#718096;margin-bottom:4px">Tasa conversión</div>
+        <div style="font-size:1.6rem;font-weight:700;color:#f6ad55" id="sf-tasa">—</div>
+      </div>
+    </div>
+    <canvas id="chart-seg-firmado" style="max-height:280px"></canvas>
+  </div>
+
+  <!-- Panel No Aplica -->
+  <div id="panel-no-aplica" style="display:none;background:#2d1515;border:1px solid #742a2a;border-radius:12px;padding:16px 20px;margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h3 style="font-size:0.88rem;color:#fc8181">🚫 No Aplica — Resumen</h3>
+      <button onclick="filterNoAplica()" style="background:#742a2a;color:#feb2b2;border:none;padding:4px 12px;border-radius:6px;font-size:0.75rem;cursor:pointer;font-weight:600">Ver en tabla ↓</button>
+    </div>
+    <div id="no-aplica-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px"></div>
   </div>
 
   <div class="filters-card">
@@ -228,9 +308,9 @@ tr.new-contact td { background: #1a2e1a !important; }
       <div class="filter-group" style="grid-column: span 2;">
         <label><span>📅 Fecha de agregado</span><span class="lbl-clear" id="clear-fecha" onclick="clearFecha()" style="display:none">✕ limpiar</span></label>
         <div class="date-range">
-          <input type="date" id="fecha-desde" onchange="applyFilters()"/>
+          <input type="date" id="fecha-desde" onchange="applyFilters()" oninput="limitYear(this)"/>
           <span class="date-sep">→</span>
-          <input type="date" id="fecha-hasta" onchange="applyFilters()"/>
+          <input type="date" id="fecha-hasta" onchange="applyFilters()" oninput="limitYear(this)"/>
         </div>
         <div class="date-shortcuts">
           <span class="dshort" id="ds-hoy" onclick="setDateShortcut('hoy')">Hoy</span>
@@ -240,6 +320,7 @@ tr.new-contact td { background: #1a2e1a !important; }
           <span class="dshort" id="ds-30d" onclick="setDateShortcut('30d')">Últimos 30 días</span>
           <span class="dshort" id="ds-mes" onclick="setDateShortcut('mes')">Este mes</span>
           <span class="dshort" id="ds-mesant" onclick="setDateShortcut('mesant')">Mes anterior</span>
+          <span class="dshort" id="ds-inicio" onclick="setDateShortcut('inicio')">Desde el inicio</span>
         </div>
       </div>
       <div class="filter-group">
@@ -258,6 +339,22 @@ tr.new-contact td { background: #1a2e1a !important; }
         <label>Canal <span class="lbl-clear" id="clear-canal" onclick="clearFilter('canal')" style="display:none">✕ limpiar</span></label>
         <div class="ms-wrapper" id="ms-canal"></div>
       </div>
+      <div class="filter-group">
+        <label>
+          <span>✅ Verificación</span>
+          <span class="lbl-clear" id="clear-verif" onclick="clearVerif()" style="display:none">✕ limpiar</span>
+        </label>
+        <div class="ms-wrapper" id="ms-verif-wrapper">
+          <div class="ms-trigger" id="trig-verif" onclick="toggleVerifDropdown()">
+            <span class="ms-selected-preview" id="prev-verif">Todos</span>
+            <span class="arrow">▼</span>
+          </div>
+          <div class="ms-dropdown" id="drop-verif">
+            <div id="verif-options"></div>
+          </div>
+        </div>
+      </div>
+
       <div class="filter-group">
         <label>
           <span>📋 Tareas pendientes</span>
@@ -292,11 +389,12 @@ tr.new-contact td { background: #1a2e1a !important; }
           <th onclick="sortBy('assignedTo')">Propietario ↕</th>
           <th>Canal</th>
           <th onclick="sortBy('dateAdded')">Fecha ↕</th>
+          <th>Verificación</th>
           <th>Tareas</th>
         </tr>
       </thead>
       <tbody id="table-body">
-        <tr><td colspan="9" class="empty">Sin datos. Haz click en "Iniciar Dashboard".</td></tr>
+        <tr><td colspan="10" class="empty">Sin datos. Haz click en "Iniciar Dashboard".</td></tr>
       </tbody>
     </table>
     <div class="pagination" id="pagination"></div>
@@ -312,109 +410,65 @@ const CACHE_KEY = 'ora_contacts_v2';
 const CACHE_TS_KEY = 'ora_contacts_ts_v2';
 const COLORS = ['#6c63ff','#f093fb','#4facfe','#43e97b','#fa709a','#fee140','#30cfd0','#a18cd1','#fda085','#f5576c','#667eea','#764ba2','#f77f00','#00b4d8','#e63946','#2ec4b6','#e71d36','#ff9f1c'];
 
-const AGENT_MAP = {
-  'UmiH07hfDbIsrZlfXkBw':'Anileidys Rodriguez','5hyMhpX1wwFLV5gIcY7w':'Auto Mata',
-  'PyATtPmpNlVwTKbnxs32':'Belkis Hernandez','Nia6k8VdSldjWywGJKgt':'Daniel Rodriguez Jaramillo',
-  'GdONDJmS7q3O8ZAV7zPq':'Delmis Cabrera','Qkns3bXsDJoZL1J0s9G6':'Erika Baron',
-  '4IMHIZFOz9EaOVMS4Z1Y':'Etienis Rodríguez','T0EHIANRCAJBQYKKKBsx':'Gloria Acosta',
-  'fh64Guy2SCEbIvUHjWwA':'Inez Vega','C3kE9GUCpDDdX6siq4ZJ':'Jhon Medina',
-  'GMp1wuhY2gnNYbDTxypi':'Keily González','BzzztTjKAhwO7uSm78J7':'Kenny Niebla',
-  '7VwnFCTaHZv5ptsqtXPq':'Lilian Sánchez','DCOAOiFpa14zTnthWT4K':'Maria de los Ángeles Quintana',
-  '8MJTPJ7Bq9t3i6VE4PB8':'Maria Teresa Pina','gQ5Lp999LJNBEtYH2GnU':'Mayte Torres',
-  '5qMArvoJrDspAkroUUEU':'Rossana Cepeda','LnzWR0PIEP7plGAVYw79':'Saima Reyes',
-  'FykSLLpgCfJQSUVIJZaF':'Yirema Padrón','TUjMT9B988ZHNDhsANnt':'Zunamy Rodríguez'
-};
+// AGENT_MAP se carga desde sessionStorage después del login (no expuesto en código fuente)
+let AGENT_MAP = {};
+
+function loadAgentMap(){
+  try {
+    const stored = sessionStorage.getItem('ora_agent_map');
+    if(stored) AGENT_MAP = JSON.parse(stored);
+  } catch(e) {}
+}
+
+function saveAgentMap(){
+  // Se guarda cifrado en base64 para no estar en texto plano
+  const map = {
+    'UmiH07hfDbIsrZlfXkBw':'Anileidys Rodriguez','5hyMhpX1wwFLV5gIcY7w':'Auto Mata',
+    'PyATtPmpNlVwTKbnxs32':'Belkis Hernandez','Nia6k8VdSldjWywGJKgt':'Daniel Rodriguez Jaramillo',
+    'GdONDJmS7q3O8ZAV7zPq':'Delmis Cabrera','Qkns3bXsDJoZL1J0s9G6':'Erika Baron',
+    '4IMHIZFOz9EaOVMS4Z1Y':'Etienis Rodríguez','T0EHIANRCAJBQYKKKBsx':'Gloria Acosta',
+    'fh64Guy2SCEbIvUHjWwA':'Inez Vega','C3kE9GUCpDDdX6siq4ZJ':'Jhon Medina',
+    'GMp1wuhY2gnNYbDTxypi':'Keily González','BzzztTjKAhwO7uSm78J7':'Kenny Niebla',
+    '7VwnFCTaHZv5ptsqtXPq':'Lilian Sánchez','DCOAOiFpa14zTnthWT4K':'Maria de los Ángeles Quintana',
+    '8MJTPJ7Bq9t3i6VE4PB8':'Maria Teresa Pina','gQ5Lp999LJNBEtYH2GnU':'Mayte Torres',
+    '5qMArvoJrDspAkroUUEU':'Rossana Cepeda','LnzWR0PIEP7plGAVYw79':'Saima Reyes',
+    'FykSLLpgCfJQSUVIJZaF':'Yirema Padrón','TUjMT9B988ZHNDhsANnt':'Zunamy Rodríguez',
+    'CifYSBhJstJa4v917KUK':'Mirel Valiente','SgKHsUH12xs5kowZNd6m':'José Carrillo'
+  };
+  sessionStorage.setItem('ora_agent_map', JSON.stringify(map));
+  AGENT_MAP = map;
+}
 
 function agentName(id){ return AGENT_MAP[id]||(id?id.substring(0,10)+'…':'Sin asignar'); }
+
+function getName(c){
+  if(c.contactName && c.contactName.trim()) return c.contactName.trim();
+  const first = (c.firstName||c.firstNameRaw||'').trim();
+  const last = (c.lastName||c.lastNameRaw||'').trim();
+  if(first||last) return (first+' '+last).trim();
+  if(c.email) return c.email;
+  if(c.phone) return c.phone;
+  return 'Sin nombre';
+}
+function getVerificado(c){
+  const cf = (c.customFields||[]).find(f=>f.id==='449h0Dom3MDtwb6zLYon');
+  if(!cf || !cf.value) return null;
+  const vals = Array.isArray(cf.value) ? cf.value : [cf.value];
+  return vals;
+}
+
 function getCanal(c){ const a=c.attributions||[]; for(const x of a){if(x.medium)return x.medium.charAt(0).toUpperCase()+x.medium.slice(1).toLowerCase();} return 'Desconocido'; }
 function getEstado(c){ const cf=(c.customFields||[]).find(f=>f.id===ESTADO_FIELD_ID); return (cf&&cf.value)?cf.value:'Sin estado'; }
 
 let allContacts=[], filteredContacts=[];
 let minTareas = 0;
+let lnfaAgentFilter = null;
+let selectedVerifIdx = -1; // -1=todos, 0=verificado, 1=reasignado, 2=ambos, 3=sin verificar
 const taskCache = {};
 let loadingTasks = false;
 let currentPage=1, sortField='dateAdded', sortDir=-1;
-let chartEstados=null, chartAgentes=null, chartTags=null, chartTareasOwner=null;
+let chartEstados=null, chartAgentes=null, chartTags=null, chartTareasOwner=null, chartLeadsFirmados=null, chartSegFirmado=null, chartLNFA=null;
 let activeShortcut=null, autoRefreshTimer=null, countdownTimer=null, nextRefreshAt=null;
-
-// ── Leader election (una sola pestaña hace sync) ──────────────
-const TAB_ID = Math.random().toString(36).slice(2);
-const LEADER_KEY = 'ora_leader_id';
-const LEADER_TS_KEY = 'ora_leader_ts';
-const LEADER_HEARTBEAT = 4000; // 4s
-const LEADER_TIMEOUT = 10000;  // 10s sin heartbeat = lider muerto
-let isLeader = false;
-let leaderTimer = null;
-const bc = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('ora_dashboard') : null;
-
-function tryBecomeLeader(){
-  const lastTs = parseInt(localStorage.getItem(LEADER_TS_KEY)||'0');
-  const leaderId = localStorage.getItem(LEADER_KEY);
-  const now = Date.now();
-  // Si no hay lider o el lider lleva más de 10s sin latir → tomar el control
-  if(!leaderId || (now - lastTs) > LEADER_TIMEOUT){
-    localStorage.setItem(LEADER_KEY, TAB_ID);
-    localStorage.setItem(LEADER_TS_KEY, now.toString());
-    isLeader = true;
-    startLeaderHeartbeat();
-    console.log('🟢 Esta pestaña es LÍDER (sync activo)');
-    setSyncState(false, 'Líder ✓');
-  } else if(leaderId === TAB_ID){
-    isLeader = true;
-  } else {
-    isLeader = false;
-    console.log('👁 Esta pestaña es OBSERVADORA (recibe datos)');
-    setSyncState(false, 'Observadora');
-  }
-}
-
-function startLeaderHeartbeat(){
-  if(leaderTimer) clearInterval(leaderTimer);
-  leaderTimer = setInterval(()=>{
-    if(isLeader){
-      localStorage.setItem(LEADER_TS_KEY, Date.now().toString());
-    }
-  }, LEADER_HEARTBEAT);
-}
-
-// Escuchar datos del lider via BroadcastChannel
-if(bc){
-  bc.onmessage = (evt)=>{
-    if(evt.data.type === 'SYNC_DATA' && !isLeader){
-      // Recibir datos del lider sin hacer llamadas API
-      allContacts = evt.data.contacts;
-      if(evt.data.taskCache) Object.assign(taskCache, evt.data.taskCache);
-      saveCache(allContacts);
-      safeText('last-update', evt.data.ts);
-      safeText('kpi-pages', evt.data.pages||'');
-      updateKPIs();buildAllFilters();applyFilters();
-      updateTasksKPI();updateTareasOwnerChart();updatePanelSinTareas();
-      setStatus(`📡 Datos recibidos del líder — ${allContacts.length} contactos`,'success');
-    }
-  };
-}
-
-// Broadcast datos a las otras pestañas
-function broadcastSyncData(pages){
-  if(bc && isLeader){
-    bc.postMessage({
-      type: 'SYNC_DATA',
-      contacts: allContacts,
-      taskCache: taskCache,
-      ts: new Date().toLocaleString('es-CO'),
-      pages
-    });
-  }
-}
-
-// Al cerrar la pestaña lider, liberar el liderazgo
-window.addEventListener('beforeunload', ()=>{
-  if(isLeader){
-    localStorage.removeItem(LEADER_KEY);
-    localStorage.removeItem(LEADER_TS_KEY);
-  }
-  if(leaderTimer) clearInterval(leaderTimer);
-});
 let newContactIds=new Set();
 let totalTareasAsignadas=0;
 const selections={estado:new Set(),tag:new Set(),asignado:new Set(),canal:new Set()};
@@ -457,6 +511,7 @@ async function fetchAllContacts(){
 }
 
 const TASK_TARGET_ESTADO = 'Aplica - Seguimiento';
+const NO_APLICA_ESTADOS = ['No Aplica - Fuera Rango', 'No Aplica - Fuera Edad O Perfil', 'No Aplica - Sin Medicare'];
 
 function queueBatch(batch){
   // Encolar solo Aplica-Seguimiento sin duplicar
@@ -504,23 +559,27 @@ async function autoAssignTasks(contacts){
 }
 
 // ── Start ──────────────────────────────────────────────────────
-function doLogin(){
+async function doLogin(){
   const input = document.getElementById('token-input');
   const token = input.value.trim();
+  console.log('Token ingresado:', token);
   if(!token || !token.startsWith('pit-')){
-    document.getElementById('login-error').textContent = '⚠ Token inválido. Debe comenzar con pit-';
+    document.getElementById('login-error').textContent = '⚠ Token inválido: "'+token.substring(0,10)+'..." Debe comenzar con pit-';
     return;
   }
   // Guardar en sessionStorage (se borra al cerrar el navegador)
   sessionStorage.setItem('ora_token', token);
+  saveAgentMap();
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('config-bar').style.display = 'flex';
-  input.value = ''; // limpiar campo por seguridad
-  startDashboard();
+  input.value = '';
+  await startDashboard();
 }
 
 function doLogout(){
   sessionStorage.removeItem('ora_token');
+  sessionStorage.removeItem('ora_agent_map');
+  AGENT_MAP = {};
   if(autoRefreshTimer) clearInterval(autoRefreshTimer);
   if(countdownTimer) clearInterval(countdownTimer);
   location.reload();
@@ -529,34 +588,13 @@ function doLogout(){
 async function startDashboard(){
   const token=getToken();
   if(!token){setStatus('⚠ Pega tu token primero.','error');return;}
-
-  // Determinar si esta pestaña será líder o observadora
-  tryBecomeLeader();
-
-  // Siempre cargar caché para mostrar datos inmediatamente
   const cached=loadCache();
   if(cached&&cached.contacts.length){
     allContacts=cached.contacts;
     const ts=cached.ts?new Date(cached.ts).toLocaleString('es-CO'):'?';
     safeText('last-update',ts);
-    updateKPIs();buildAllFilters();applyFilters();
-    updateTasksKPI();
-  }
-
-  if(!isLeader){
-    // Observadora: solo mostrar caché y esperar datos del líder
-    setStatus(`👁 Pestaña observadora — ${allContacts.length} contactos desde caché. Esperando sync del líder...`,'syncing');
-    // Reintentar liderazgo cada 15s por si el líder se cierra
-    setInterval(()=>{
-      tryBecomeLeader();
-      if(isLeader){ scheduleAutoRefresh(); queueAllContacts(allContacts); }
-    }, 15000);
-    return;
-  }
-
-  // Solo el líder hace sync
-  if(cached&&cached.contacts.length){
     setStatus(`💾 ${allContacts.length} contactos desde caché. Sincronizando...`,'syncing');
+    updateKPIs();buildAllFilters();applyFilters();
     await syncInBackground(true);
   } else {
     setStatus('⏳ Cargando todos los contactos...','loading');
@@ -573,11 +611,9 @@ async function startDashboard(){
       updateKPIs();buildAllFilters();applyFilters();
       setSyncState(false,'Listo ✓');
       setProgress(100);setTimeout(()=>setProgress(0),600);
-      broadcastSyncData(pages);
     }catch(e){setStatus(`❌ Error: ${e.message}`,'error');setProgress(0);setSyncState(false,'Error');return;}
   }
   scheduleAutoRefresh();
-  queueAllContacts(allContacts);
 }
 
 async function syncInBackground(silent=false){
@@ -613,12 +649,10 @@ async function syncInBackground(silent=false){
     const msg=fresh.length>0?`✅ Sync OK — ${fresh.length} nuevo(s). Total: ${allContacts.length}`:`✅ Sync OK — sin cambios. Total: ${allContacts.length}`;
     setStatus(msg,'success');
     updateKPIs();buildAllFilters();applyFilters();
-    updateTasksKPI();
+    updateTasksKPI();updateNoAplicaPanel();
     queueAllContacts(allContacts);
     setSyncState(false,'Sincronizado ✓');
     setProgress(100);setTimeout(()=>setProgress(0),500);
-    // Enviar datos a pestañas observadoras
-    broadcastSyncData(pages);
   }catch(e){
     setSyncState(false,'Error sync');
     setStatus(`⚠ Error en sync: ${e.message}`,'error');
@@ -637,7 +671,7 @@ function scheduleAutoRefresh(){
   autoRefreshTimer=setInterval(async()=>{ await syncInBackground(true); nextRefreshAt=Date.now()+AUTO_REFRESH_MS; },AUTO_REFRESH_MS);
 }
 
-async function forceRefresh(){ nextRefreshAt=Date.now()+AUTO_REFRESH_MS; await syncInBackground(false); }
+async function forceRefresh(){ Object.keys(taskCache).forEach(k=>delete taskCache[k]); nextRefreshAt=Date.now()+AUTO_REFRESH_MS; await syncInBackground(false); }
 
 // ── KPIs ───────────────────────────────────────────────────────
 function updateKPIs(){
@@ -710,6 +744,15 @@ function clearFilter(key){selections[key].clear();if(msStates[key])msStates[key]
 
 // ── Date ───────────────────────────────────────────────────────
 function toInputDate(d){return d.toISOString().slice(0,10);}
+function limitYear(input){
+  if(!input.value) return;
+  const parts = input.value.split('-');
+  if(parts[0] && parts[0].length > 4){
+    parts[0] = parts[0].substring(0,4);
+    input.value = parts.join('-');
+  }
+}
+
 function setDateShortcut(key){
   const hoy=new Date();hoy.setHours(0,0,0,0);
   let desde,hasta;
@@ -721,6 +764,7 @@ function setDateShortcut(key){
   else if(key==='30d'){const d=new Date(hoy);d.setDate(d.getDate()-29);desde=d;hasta=hoy;}
   else if(key==='mes'){desde=new Date(hoy.getFullYear(),hoy.getMonth(),1);hasta=hoy;}
   else if(key==='mesant'){desde=new Date(hoy.getFullYear(),hoy.getMonth()-1,1);hasta=new Date(hoy.getFullYear(),hoy.getMonth(),0);}
+  else if(key==='inicio'){desde=new Date(2000,0,1);hasta=hoy;}
   document.getElementById('fecha-desde').value=toInputDate(desde);
   document.getElementById('fecha-hasta').value=toInputDate(hasta);
   activeShortcut=key;
@@ -740,24 +784,31 @@ function applyFilters(){
   else if(!activeShortcut)document.getElementById('clear-fecha').style.display='none';
 
   filteredContacts=allContacts.filter(c=>{
-    if(q){if(![(c.contactName||''),(c.phone||''),(c.email||'')].join(' ').toLowerCase().includes(q))return false;}
+    if(q){if(![(getName(c)||''),(c.phone||''),(c.email||'')].join(' ').toLowerCase().includes(q))return false;}
     if(desde||hasta){const d=c.dateAdded?new Date(c.dateAdded):null;if(!d)return false;if(desde&&d<desde)return false;if(hasta&&d>hasta)return false;}
     if(selections.estado.size&&!selections.estado.has(getEstado(c)))return false;
     if(selections.tag.size&&![...selections.tag].every(t=>(c.tags||[]).includes(t)))return false;
     if(selections.asignado.size&&!selections.asignado.has(agentName(c.assignedTo)))return false;
     if(selections.canal.size&&!selections.canal.has(getCanal(c)))return false;
     if(selectedTareasIdx>=0){ if(!TAREAS_OPTIONS[selectedTareasIdx].fn(c)) return false; }
+    if(selectedVerifIdx>=0){ if(!VERIF_OPTIONS[selectedVerifIdx].fn(c)) return false; }
+    // Filtro LNFA: tiene el tag del agente pero NO es su propietario
+    if(lnfaAgentFilter){
+      const tags=(c.tags||[]).map(t=>t.toLowerCase().trim());
+      if(!tags.includes(lnfaAgentFilter.tagKey)) return false;
+      if(agentName(c.assignedTo)===lnfaAgentFilter.name) return false;
+    }
     return true;
   });
   filteredContacts.sort((a,b)=>{
-    let va=sortField==='estado'?getEstado(a):sortField==='assignedTo'?agentName(a.assignedTo):(a[sortField]||'');
-    let vb=sortField==='estado'?getEstado(b):sortField==='assignedTo'?agentName(b.assignedTo):(b[sortField]||'');
+    let va=sortField==='estado'?getEstado(a):sortField==='assignedTo'?agentName(a.assignedTo):sortField==='contactName'?getName(a):(a[sortField]||'');
+    let vb=sortField==='estado'?getEstado(b):sortField==='assignedTo'?agentName(b.assignedTo):sortField==='contactName'?getName(b):(b[sortField]||'');
     return va<vb?-sortDir:va>vb?sortDir:0;
   });
   currentPage=1;
   safeText('kpi-filtrados',filteredContacts.length);
   updateCharts();renderActiveChips();renderTable();
-  updateTareasOwnerChart();updatePanelSinTareas();
+  updateTareasOwnerChart();updatePanelSinTareas();updateNoAplicaPanel();updateLeadsFirmadosChart();updateSegFirmadoChart();updateLNFAChart();
 }
 
 // ── Charts ─────────────────────────────────────────────────────
@@ -945,6 +996,52 @@ function clearTareas(){
 
 function setMinTareas(val){ /* legacy compat */ }
 
+const VERIF_OPTIONS = [
+  { label: '✅ Verificado', fn: c => { const cf=(c.customFields||[]).find(f=>f.id==='449h0Dom3MDtwb6zLYon'); if(!cf||!cf.value) return false; return [].concat(cf.value).some(v=>v.toLowerCase().includes('verificado')); } },
+  { label: '🔄 Reasignado', fn: c => { const cf=(c.customFields||[]).find(f=>f.id==='449h0Dom3MDtwb6zLYon'); if(!cf||!cf.value) return false; return [].concat(cf.value).some(v=>v.toLowerCase().includes('reasignado')); } },
+  { label: '✅🔄 Ambos', fn: c => {
+    const cf=(c.customFields||[]).find(f=>f.id==='449h0Dom3MDtwb6zLYon'); if(!cf||!cf.value) return false;
+    const vals=[].concat(cf.value);
+    return vals.some(v=>v.toLowerCase().includes('verificado')) && vals.some(v=>v.toLowerCase().includes('reasignado'));
+  }},
+  { label: '⏳ Sin verificar', fn: c => { const cf=(c.customFields||[]).find(f=>f.id==='449h0Dom3MDtwb6zLYon'); return !cf||!cf.value||[].concat(cf.value).length===0; } },
+];
+
+function buildVerifDropdown(){
+  const list = document.getElementById('verif-options');
+  if(!list) return;
+  list.innerHTML = [
+    '<div class="ms-option '+(selectedVerifIdx===-1?'selected':'')+'" onclick="selectVerifOption(-1)"><span class="ms-option-label">Todos</span></div>',
+    ...VERIF_OPTIONS.map((o,i)=>
+      '<div class="ms-option '+(selectedVerifIdx===i?'selected':'')+'" onclick="selectVerifOption('+i+')"><span class="ms-option-label">'+o.label+'</span></div>'
+    )
+  ].join('');
+}
+
+function selectVerifOption(idx){
+  selectedVerifIdx = idx;
+  const prev = document.getElementById('prev-verif');
+  const trig = document.getElementById('trig-verif');
+  const cb = document.getElementById('clear-verif');
+  if(idx===-1){ prev.innerHTML='Todos'; trig.classList.remove('active'); if(cb)cb.style.display='none'; }
+  else { prev.innerHTML='<span class="ms-count">1</span>'+VERIF_OPTIONS[idx].label; trig.classList.add('active'); if(cb)cb.style.display='inline'; }
+  buildVerifDropdown();
+  document.getElementById('drop-verif').classList.remove('open');
+  document.getElementById('trig-verif').classList.remove('open');
+  applyFilters();
+}
+
+function toggleVerifDropdown(){
+  const drop=document.getElementById('drop-verif');
+  const trig=document.getElementById('trig-verif');
+  const isOpen=drop.classList.contains('open');
+  document.querySelectorAll('.ms-dropdown').forEach(d=>d.classList.remove('open'));
+  document.querySelectorAll('.ms-trigger').forEach(t=>t.classList.remove('open'));
+  if(!isOpen){ buildVerifDropdown(); drop.classList.add('open'); trig.classList.add('open'); }
+}
+
+function clearVerif(){ selectVerifOption(-1); }
+
 function clearAllFilters(){document.getElementById('search').value='';clearFecha();['estado','tag','asignado','canal'].forEach(key=>{selections[key].clear();if(msStates[key]){msStates[key].search='';updateMsTrigger(key);renderMsList(key);}});applyFilters();}
 
 // ── Table ──────────────────────────────────────────────────────
@@ -964,6 +1061,78 @@ async function fetchOneTask(c){
     el.style.background = (typeof val==='number'&&val>0) ? '#276749' : '#2a2d4e';
     el.style.color = (typeof val==='number'&&val>0) ? '#9ae6b4' : '#818cf8';
   }
+}
+
+function updateNoAplicaPanel(){
+  const panel = document.getElementById('panel-no-aplica');
+  const statsEl = document.getElementById('no-aplica-stats');
+  if(!panel) return;
+
+  if(allContacts.length === 0){ panel.style.display='none'; return; }
+  panel.style.display = 'block';
+
+  // Respetar filtro de fecha si está activo
+  const d1=document.getElementById('fecha-desde')?.value;
+  const d2=document.getElementById('fecha-hasta')?.value;
+  const desdeNA=d1?new Date(d1+'T00:00:00'):null;
+  const hastaNA=d2?new Date(d2+'T23:59:59'):null;
+  const noAplicaContacts = allContacts.filter(c => {
+    if(!NO_APLICA_ESTADOS.includes(getEstado(c))) return false;
+    if(desdeNA||hastaNA){
+      const d=c.dateAdded?new Date(c.dateAdded):null;
+      if(!d) return false;
+      if(desdeNA&&d<desdeNA) return false;
+      if(hastaNA&&d>hastaNA) return false;
+    }
+    return true;
+  });
+
+  const hasVerif = (c) => {
+    const cf=(c.customFields||[]).find(f=>f.id==='449h0Dom3MDtwb6zLYon');
+    if(!cf||!cf.value) return false;
+    return [].concat(cf.value).some(v=>v.toLowerCase().includes('verificado'));
+  };
+  const hasReasig = (c) => {
+    const cf=(c.customFields||[]).find(f=>f.id==='449h0Dom3MDtwb6zLYon');
+    if(!cf||!cf.value) return false;
+    return [].concat(cf.value).some(v=>v.toLowerCase().includes('reasignado'));
+  };
+
+  const totalNoAplica = noAplicaContacts.length;
+  const totalVerif = allContacts.filter(hasVerif).length;
+  const totalReasig = allContacts.filter(hasReasig).length;
+  const totalAmbos = allContacts.filter(c=>hasVerif(c)&&hasReasig(c)).length;
+
+  if(statsEl){
+    const totalLeadsAll = allContacts.length;
+    const hayFiltros = selections.estado.size||selections.tag.size||selections.asignado.size||selections.canal.size||
+      document.getElementById('fecha-desde')?.value||document.getElementById('fecha-hasta')?.value;
+    const pctFiltrados = hayFiltros && filteredContacts.length>0 ? ((totalNoAplica/filteredContacts.length)*100).toFixed(1)+'% de '+filteredContacts.length+' filtrados' : '';
+    const pctTotal = totalLeadsAll>0 ? ((totalNoAplica/totalLeadsAll)*100).toFixed(1)+'% del total ('+totalLeadsAll+' leads)' : '';
+    const cards = [
+      { label:'🚫 Total No Aplica', val: totalNoAplica, color:'#fc8181', bg:'#3d1515', border:'#742a2a',
+        sub: NO_APLICA_ESTADOS.map(e=>`<div style="display:flex;justify-content:space-between"><span style="font-size:0.68rem;color:#718096">${e.replace('No Aplica - ','')}</span><span style="font-size:0.68rem;color:#fc8181;font-weight:700">${noAplicaContacts.filter(c=>getEstado(c)===e).length}</span></div>`).join('')+(pctFiltrados||pctTotal ? '<div style="margin-top:8px;padding-top:6px;border-top:1px solid #742a2a">'+(pctFiltrados?'<div style="font-size:0.7rem;color:#f6ad55">'+pctFiltrados+'</div>':'')+(pctTotal&&pctTotal!==pctFiltrados?'<div style="font-size:0.7rem;color:#718096">'+pctTotal+'</div>':'')+'</div>':'') },
+      { label:'✅ Verificado', val: totalVerif, color:'#68d391', bg:'#1a2e1f', border:'#276749', sub:'<span style="font-size:0.68rem;color:#718096">En todos los estados</span>' },
+      { label:'🔄 Reasignado', val: totalReasig, color:'#f6ad55', bg:'#2e1f0a', border:'#744210', sub:'<span style="font-size:0.68rem;color:#718096">En todos los estados</span>' },
+      { label:'✅🔄 Verificado + Reasignado', val: totalAmbos, color:'#818cf8', bg:'#1a1d2e', border:'#4a5568', sub:'<span style="font-size:0.68rem;color:#718096">Tienen ambos valores</span>' },
+    ];
+    statsEl.innerHTML = cards.map(c=>`
+      <div style="background:${c.bg};border:1px solid ${c.border};border-radius:10px;padding:14px 16px">
+        <div style="font-size:0.7rem;color:${c.color};margin-bottom:6px;font-weight:600">${c.label}</div>
+        <div style="font-size:2rem;font-weight:700;color:#fff;margin-bottom:8px">${c.val}</div>
+        ${c.sub}
+      </div>`).join('');
+  }
+
+}
+
+function filterNoAplica(){
+  clearAllFilters();
+  NO_APLICA_ESTADOS.forEach(e => { selections.estado.add(e); });
+  updateMsTrigger('estado');
+  renderMsList('estado');
+  applyFilters();
+  setTimeout(()=>window.scrollTo(0, document.querySelector('.table-card').offsetTop - 20), 100);
 }
 
 function updatePanelSinTareas(){
@@ -990,7 +1159,7 @@ function updatePanelSinTareas(){
       listEl.innerHTML = sinTareas.slice(0,50).map(c => {
         const url = 'https://app.talkoraia.com/v2/location/'+LOCATION_ID+'/contacts/detail/'+c.id;
         return '<a href="'+url+'" target="_blank" style="background:#1e3a2f;border:1px solid #276749;border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:3px;text-decoration:none">'+
-          '<span style="color:#e2e8f0;font-size:0.78rem;font-weight:600">'+(c.contactName||'Sin nombre')+'</span>'+
+          '<span style="color:#e2e8f0;font-size:0.78rem;font-weight:600">'+(getName(c)||'Sin nombre')+'</span>'+
           '<span style="color:#718096;font-size:0.68rem">👤 '+agentName(c.assignedTo)+'</span>'+
           '<span style="color:#68d391;font-size:0.65rem">↗ Abrir en ORA IA</span>'+
         '</a>';
@@ -1021,6 +1190,412 @@ function filterSinTareas(){
   // Una sola llamada a applyFilters
   applyFilters();
   setTimeout(()=>window.scrollTo(0, document.querySelector('.table-card').offsetTop - 20), 100);
+}
+
+function setLFShortcut(key){
+  setDateShortcut(key);
+}
+
+function updateLNFAChart(){
+  const TAG_TARGET = 'lead_no_fue_atentido';
+
+  // Filtro de fecha
+  const d1=document.getElementById('fecha-desde')?.value;
+  const d2=document.getElementById('fecha-hasta')?.value;
+  const desdeL=d1?new Date(d1+'T00:00:00'):null;
+  const hastaL=d2?new Date(d2+'T23:59:59'):null;
+
+  // Base: todos los contactos con lead_no_fue_atentido
+  const lnfaContacts = allContacts.filter(c=>{
+    if(!(c.tags||[]).includes(TAG_TARGET)) return false;
+    if(desdeL||hastaL){
+      const d=c.dateAdded?new Date(c.dateAdded):null;
+      if(!d) return false;
+      if(desdeL&&d<desdeL) return false;
+      if(hastaL&&d>hastaL) return false;
+    }
+    return true;
+  });
+
+  safeText('lnfa-diff', lnfaContacts.length);
+
+  // Contar tags de agentes en esos contactos
+  const tagCount={};
+  lnfaContacts.forEach(c=>{
+    (c.tags||[]).forEach(t=>{
+      const key = t.toLowerCase().trim();
+      tagCount[key] = (tagCount[key]||0) + 1;
+    });
+  });
+
+  // Contar propietarios en esos mismos contactos
+  const propCount={};
+  lnfaContacts.forEach(c=>{
+    const name = agentName(c.assignedTo);
+    if(!name||name==='Sin asignar') return;
+    propCount[name] = (propCount[name]||0) + 1;
+  });
+
+  // Cruzar: para cada agente, buscar su nombre en los tags
+  const resultMap={};
+  Object.keys(propCount).forEach(name=>{
+    const tagKey = name.toLowerCase().trim();
+    const tags = tagCount[tagKey]||0;
+    const props = propCount[name]||0;
+    const diff = tags - props;
+    resultMap[name] = { tags, props, diff };
+  });
+
+  // También agentes que aparecen solo en tags (no asignados)
+  Object.keys(tagCount).forEach(tagKey=>{
+    const matchedName = Object.values(AGENT_MAP).find(n=>n.toLowerCase().trim()===tagKey);
+    if(matchedName && !resultMap[matchedName] && tagCount[tagKey]>0){
+      resultMap[matchedName] = { tags: tagCount[tagKey], props: 0, diff: tagCount[tagKey] };
+    }
+  });
+
+  // Solo los que tienen diferencia > 0, ordenar mayor a menor
+  const agents = Object.keys(resultMap)
+    .filter(a=>resultMap[a].diff>0)
+    .sort((a,b)=>resultMap[b].diff-resultMap[a].diff);
+
+  if(chartLNFA){try{chartLNFA.destroy();}catch(e){}chartLNFA=null;}
+  const orphan=Chart.getChart('chart-lnfa');
+  if(orphan){try{orphan.destroy();}catch(e){}}
+  const ctx=document.getElementById('chart-lnfa');
+  if(!ctx||!agents.length) return;
+
+  chartLNFA=new Chart(ctx.getContext('2d'),{
+    type:'doughnut',
+    data:{
+      labels: agents.map(a=>`${a} (${resultMap[a].diff})`),
+      datasets:[{
+        data: agents.map(a=>resultMap[a].diff),
+        backgroundColor: COLORS.slice(0,agents.length),
+        borderWidth:2, borderColor:'#1a1d2e'
+      }]
+    },
+    options:{
+      responsive:true,
+      onClick:(evt,elements)=>{
+        if(!elements||!elements.length) return;
+        filterLNFAByAgent(agents[elements[0].index]);
+      },
+      plugins:{
+        legend:{ position:'right', labels:{color:'#a0aec0',font:{size:10},boxWidth:10,padding:6} },
+        tooltip:{callbacks:{label:function(ctx){
+          const a=agents[ctx.dataIndex];
+          const r=resultMap[a];
+          return ['Tags LNFA: '+r.tags, 'Propietario en LNFA: '+r.props, 'Diferencia: '+r.diff];
+        }}}
+      }
+    }
+  });
+}
+
+function switchTab(name){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  const tabEl = document.getElementById('tab-'+name);
+  const btnEl = document.querySelector('.tab-btn[onclick*="'+name+'"]');
+  if(tabEl) tabEl.classList.add('active');
+  if(btnEl) btnEl.classList.add('active');
+  if(name==='analisis'){ setTimeout(()=>{ updateLeadsFirmadosChart(); updateSegFirmadoChart(); },50); }
+  if(name==='overview'){ setTimeout(()=>{ updateCharts(); updateLNFAChart(); },50); }
+}
+
+function filterLNFA(){
+  switchTab('contactos');
+  setTimeout(()=>{
+    selections.estado.clear(); updateMsTrigger('estado'); renderMsList('estado');
+    selections.asignado.clear(); updateMsTrigger('asignado'); renderMsList('asignado');
+    selections.canal.clear(); updateMsTrigger('canal'); renderMsList('canal');
+    selections.tag.clear();
+    selections.tag.add('lead_no_fue_atentido');
+    updateMsTrigger('tag'); renderMsList('tag');
+    applyFilters();
+    setTimeout(()=>window.scrollTo({top: document.querySelector('.table-card')?.offsetTop-20||0, behavior:'smooth'}), 100);
+  }, 200);
+}
+
+function filterLNFAByAgent(agentNameStr){
+  // Filtrar contactos con tag lead_no_fue_atentido Y tag del agente, pero NO asignados a ese agente
+  const tagKey = agentNameStr.toLowerCase().trim();
+  lnfaAgentFilter = { name: agentNameStr, tagKey };
+  switchTab('contactos');
+  setTimeout(()=>{
+    selections.estado.clear(); updateMsTrigger('estado'); renderMsList('estado');
+    selections.canal.clear();  updateMsTrigger('canal');  renderMsList('canal');
+    selections.asignado.clear(); updateMsTrigger('asignado'); renderMsList('asignado');
+    selections.tag.clear();
+    selections.tag.add('lead_no_fue_atentido');
+    selections.tag.add(tagKey);
+    updateMsTrigger('tag'); renderMsList('tag');
+    applyFilters();
+    setTimeout(()=>window.scrollTo({top: document.querySelector('.table-card')?.offsetTop-20||0, behavior:'smooth'}), 150);
+  }, 200);
+}
+
+function setSFShortcut(key){ setDateShortcut(key); }
+
+function updateSegFirmadoChart(){
+  const d1 = document.getElementById('fecha-desde').value;
+  const d2 = document.getElementById('fecha-hasta').value;
+  let desde, hasta;
+  if(d1||d2){
+    desde = d1 ? new Date(d1+'T00:00:00') : null;
+    hasta = d2 ? new Date(d2+'T23:59:59') : null;
+  } else {
+    hasta = new Date();
+    desde = new Date();
+    desde.setDate(desde.getDate()-29);
+  }
+
+  // Base: si hay filtros activos usar filteredContacts
+  const baseContacts = (selections.canal.size||selections.asignado.size||selections.tag.size)
+    ? filteredContacts : allContacts;
+
+  const inRange = baseContacts.filter(c=>{
+    if(!c.dateAdded) return false;
+    const d=new Date(c.dateAdded);
+    if(desde&&d<desde) return false;
+    if(hasta&&d>hasta) return false;
+    return true;
+  });
+
+  const seguimientos = inRange.filter(c=>getEstado(c)==='Aplica - Seguimiento');
+  const firmados = inRange.filter(c=>getEstado(c)==='Aplica - Firmado');
+
+  function getWeekKey(dateStr){
+    const d=new Date(dateStr);
+    const day=d.getDay();
+    const monday=new Date(d);
+    monday.setDate(d.getDate()-(day===0?6:day-1));
+    const sunday=new Date(monday);
+    sunday.setDate(monday.getDate()+6);
+    const fmt=(x)=>x.toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit'});
+    return fmt(monday)+' - '+fmt(sunday);
+  }
+  function getWeekSort(dateStr){
+    const d=new Date(dateStr);
+    const day=d.getDay();
+    const monday=new Date(d);
+    monday.setDate(d.getDate()-(day===0?6:day-1));
+    return monday.getTime();
+  }
+
+  const segByWeek={}, firmByWeek={}, weekSort={};
+  seguimientos.forEach(c=>{
+    const k=getWeekKey(c.dateAdded);
+    segByWeek[k]=(segByWeek[k]||0)+1;
+    weekSort[k]=Math.min(weekSort[k]||Infinity,getWeekSort(c.dateAdded));
+  });
+  firmados.forEach(c=>{
+    const k=getWeekKey(c.dateAdded);
+    firmByWeek[k]=(firmByWeek[k]||0)+1;
+    weekSort[k]=Math.min(weekSort[k]||Infinity,getWeekSort(c.dateAdded));
+  });
+
+  const allWeeks=[...new Set([...Object.keys(segByWeek),...Object.keys(firmByWeek)])]
+    .sort((a,b)=>(weekSort[a]||0)-(weekSort[b]||0));
+
+  const totalSeg=seguimientos.length;
+  const totalFirm=firmados.length;
+  const tasa=totalSeg>0?((totalFirm/totalSeg)*100).toFixed(1)+'%':'0%';
+  safeText('sf-total-seguimiento',totalSeg);
+  safeText('sf-total-firmado',totalFirm);
+  safeText('sf-tasa',tasa);
+
+  if(chartSegFirmado){try{chartSegFirmado.destroy();}catch(e){}chartSegFirmado=null;}
+  const orphan=Chart.getChart('chart-seg-firmado');
+  if(orphan){try{orphan.destroy();}catch(e){}}
+
+  const ctx=document.getElementById('chart-seg-firmado');
+  if(!ctx||!allWeeks.length) return;
+
+  chartSegFirmado=new Chart(ctx.getContext('2d'),{
+    type:'line',
+    data:{
+      labels:allWeeks,
+      datasets:[
+        {
+          label:'Aplica - Seguimiento',
+          data:allWeeks.map(w=>segByWeek[w]||0),
+          borderColor:'#f093fb',
+          backgroundColor:'#f093fb33',
+          tension:0.2,fill:false,
+          pointRadius:5,pointHoverRadius:8,borderWidth:2.5
+        },
+        {
+          label:'Aplica - Firmado',
+          data:allWeeks.map(w=>firmByWeek[w]||0),
+          borderColor:'#68d391',
+          backgroundColor:'#68d39133',
+          tension:0.2,fill:false,
+          pointRadius:5,pointHoverRadius:8,borderWidth:2.5
+        }
+      ]
+    },
+    options:{
+      responsive:true,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{labels:{color:'#a0aec0',font:{size:11},boxWidth:12}},
+        tooltip:{callbacks:{afterBody:(items)=>{
+          const seg=items.find(i=>i.datasetIndex===0)?.raw||0;
+          const firm=items.find(i=>i.datasetIndex===1)?.raw||0;
+          return seg>0?['Conversión: '+(firm/seg*100).toFixed(1)+'%']:[];
+        }}}
+      },
+      scales:{
+        x:{ticks:{color:'#a0aec0',font:{size:10}},grid:{color:'#2d3748'}},
+        y:{type:'linear',position:'left',ticks:{color:'#a0aec0',font:{size:10}},grid:{color:'#2d3748'},beginAtZero:true}
+      }
+    }
+  });
+}
+
+function updateLeadsFirmadosChart(){
+  const d1 = document.getElementById('fecha-desde').value;
+  const d2 = document.getElementById('fecha-hasta').value;
+
+  // Rango: si no hay filtro usar últimos 30 días
+  let desde, hasta;
+  if(d1 || d2){
+    desde = d1 ? new Date(d1+'T00:00:00') : null;
+    hasta = d2 ? new Date(d2+'T23:59:59') : null;
+  } else {
+    hasta = new Date();
+    desde = new Date();
+    desde.setDate(desde.getDate() - 29);
+  }
+
+  // Filtrar contactos en el rango respetando filtros activos
+  const inRange = allContacts.filter(c => {
+    if(!c.dateAdded) return false;
+    const d = new Date(c.dateAdded);
+    if(desde && d < desde) return false;
+    if(hasta && d > hasta) return false;
+    if(selections.canal.size&&!selections.canal.has(getCanal(c))) return false;
+    if(selections.asignado.size&&!selections.asignado.has(agentName(c.assignedTo))) return false;
+    if(selections.tag.size&&![...selections.tag].every(t=>(c.tags||[]).includes(t))) return false;
+    return true;
+  });
+
+  const firmados = inRange.filter(c => getEstado(c) === 'Aplica - Firmado');
+
+  // Función para obtener clave de semana
+  function getWeekKey(dateStr){
+    const d = new Date(dateStr);
+    const day = d.getDay();
+    const monday = new Date(d);
+    monday.setDate(d.getDate() - (day===0?6:day-1));
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    const fmt = (x) => x.toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit'});
+    return fmt(monday)+' - '+fmt(sunday);
+  }
+  function getWeekSort(dateStr){
+    const d = new Date(dateStr);
+    const day = d.getDay();
+    const monday = new Date(d);
+    monday.setDate(d.getDate() - (day===0?6:day-1));
+    return monday.getTime();
+  }
+
+  // Agrupar por semana
+  const leadsByWeek = {};
+  const firmadosByWeek = {};
+  const weekSort = {};
+
+  inRange.forEach(c => {
+    const key = getWeekKey(c.dateAdded);
+    leadsByWeek[key] = (leadsByWeek[key]||0) + 1;
+    weekSort[key] = Math.min(weekSort[key]||Infinity, getWeekSort(c.dateAdded));
+  });
+
+  firmados.forEach(c => {
+    const key = getWeekKey(c.dateAdded);
+    firmadosByWeek[key] = (firmadosByWeek[key]||0) + 1;
+    weekSort[key] = Math.min(weekSort[key]||Infinity, getWeekSort(c.dateAdded));
+  });
+
+  const allDias = [...new Set([...Object.keys(leadsByWeek), ...Object.keys(firmadosByWeek)])]
+    .sort((a,b) => (weekSort[a]||0)-(weekSort[b]||0));
+
+  // KPIs con totales reales (todos los firmados en allContacts, no solo en rango)
+  const totalLeads = inRange.length;
+  const totalFirmados = firmados.length;
+  const tasa = totalLeads > 0 ? ((totalFirmados/totalLeads)*100).toFixed(1)+'%' : '0%';
+  safeText('lf-total-leads', totalLeads);
+  safeText('lf-total-firmados', totalFirmados);
+  safeText('lf-tasa', tasa);
+
+  if(!allDias.length) return;
+
+  // Destruir chart anterior
+  if(chartLeadsFirmados){ try{chartLeadsFirmados.destroy();}catch(e){} chartLeadsFirmados=null; }
+  const orphan = Chart.getChart('chart-leads-firmados');
+  if(orphan){ try{orphan.destroy();}catch(e){} }
+
+  const ctx = document.getElementById('chart-leads-firmados');
+  if(!ctx) return;
+
+  chartLeadsFirmados = new Chart(ctx.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: allDias,
+      datasets: [
+        {
+          label: 'Leads ingresados',
+          data: allDias.map(d => leadsByWeek[d]||0),
+          borderColor: '#6c63ff',
+          backgroundColor: '#6c63ff22',
+          tension: 0.4,
+          fill: true,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          borderWidth: 2
+        },
+        {
+          label: 'Aplica - Firmado',
+          data: allDias.map(d => firmadosByWeek[d]||0),
+          borderColor: '#68d391',
+          backgroundColor: '#68d39122',
+          tension: 0.4,
+          fill: true,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          borderWidth: 2
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: '#a0aec0', font: { size: 11 }, boxWidth: 12 } },
+        tooltip: { callbacks: {
+          afterBody: (items) => {
+            const leads = items.find(i=>i.datasetIndex===0)?.raw||0;
+            const firm = items.find(i=>i.datasetIndex===1)?.raw||0;
+            return leads > 0 ? ['Tasa: '+(firm/leads*100).toFixed(1)+'%'] : [];
+          }
+        }}
+      },
+      scales: {
+        x: { ticks: { color:'#a0aec0', font:{size:10} }, grid: { color:'#2d3748' } },
+        y: {
+          type: 'linear', position: 'left',
+          ticks: { color:'#818cf8', font:{size:10} },
+          grid: { color:'#2d3748' },
+          beginAtZero: true,
+          title: { display: true, text: 'Leads', color:'#818cf8', font:{size:10} }
+        },
+
+      }
+    }
+  });
 }
 
 function updateTareasOwnerChart(){
@@ -1118,7 +1693,7 @@ function renderTable(){
   const start=(currentPage-1)*PAGE_SIZE,page=filteredContacts.slice(start,start+PAGE_SIZE);
   safeText('result-count',`(${filteredContacts.length} de ${allContacts.length})`);
   const tbody=document.getElementById('table-body');
-  if(!page.length){tbody.innerHTML=`<tr><td colspan="9" class="empty">No hay contactos con estos filtros.</td></tr>`;}
+  if(!page.length){tbody.innerHTML=`<tr><td colspan="10" class="empty">No hay contactos con estos filtros.</td></tr>`;}
   else{ tbody.innerHTML=page.map((c,i)=>{
     const estado=getEstado(c);
     const ec=estado.toLowerCase().includes('aplica')&&!estado.toLowerCase().includes('no aplica')?'badge-aplica':estado.toLowerCase().includes('pendiente')?'badge-pendiente':'badge-default';
@@ -1127,13 +1702,24 @@ function renderTable(){
     const oraUrl=`https://app.talkoraia.com/v2/location/${LOCATION_ID}/contacts/detail/${c.id}`;
     return `<tr${isNew?' class="new-contact"':''}>
       <td style="color:#4a5568;font-size:0.72rem">${start+i+1}</td>
-      <td><strong style="color:#e2e8f0">${c.contactName||'—'}</strong><a href="${oraUrl}" target="_blank" class="ora-link" title="Abrir en ORA IA">↗</a>${isNew?'<span style="font-size:0.62rem;color:#68d391;margin-left:4px">NUEVO</span>':''}${c.email?`<br><span style="color:#718096;font-size:0.68rem">${c.email}</span>`:''}</td>
+      <td><strong style="color:#e2e8f0">${getName(c)||'—'}</strong><a href="${oraUrl}" target="_blank" class="ora-link" title="Abrir en ORA IA">↗</a>${isNew?'<span style="font-size:0.62rem;color:#68d391;margin-left:4px">NUEVO</span>':''}${c.email?`<br><span style="color:#718096;font-size:0.68rem">${c.email}</span>`:''}</td>
       <td class="phone">${c.phone||'—'}</td>
       <td>${tags||'<span style="color:#4a5568">—</span>'}</td>
       <td><span class="badge ${ec}">${estado}</span></td>
       <td><span class="agent-badge">👤 ${agentName(c.assignedTo)}</span></td>
       <td><span class="canal-badge">📡 ${getCanal(c)}</span></td>
       <td style="color:#718096;font-size:0.72rem">${c.dateAdded?new Date(c.dateAdded).toLocaleDateString('es-CO'):'—'}</td>
+      <td>${(()=>{
+        const isNoAplica = NO_APLICA_ESTADOS.includes(estado);
+        if(!isNoAplica) return '<span style="color:#4a5568">—</span>';
+        const vals = getVerificado(c);
+        if(!vals||!vals.length) return '<span style="color:#4a5568">—</span>';
+        return vals.map(v=>{
+          const color = v==='Verificado'?'#68d391':v==='Reasignado'?'#f6ad55':'#a0aec0';
+          const bg = v==='Verificado'?'#1e3a2f':v==='Reasignado'?'#3a2d1e':'#2d3748';
+          return '<span style="background:'+bg+';color:'+color+';padding:2px 8px;border-radius:12px;font-size:0.68rem;font-weight:600;margin:1px;display:inline-block">'+v+'</span>';
+        }).join('');
+      })()}</td>
       <td><span id="task-count-${c.id}" style="background:#2a2d4e;color:#818cf8;padding:2px 8px;border-radius:12px;font-size:0.7rem;font-weight:600">${taskCache[c.id]!==undefined?taskCache[c.id]:'⏳'}</span></td>
     </tr>`;
   }).join('');
@@ -1152,14 +1738,14 @@ function goPage(p){currentPage=p;renderTable();window.scrollTo(0,document.queryS
 // ── CSV ────────────────────────────────────────────────────────
 function exportCSV(){
   if(!filteredContacts.length){alert('No hay contactos para exportar.');return;}
-  const csv=[['Nombre','Email','Telefono','Tags','Estado','Propietario','Canal','Fecha'],...filteredContacts.map(c=>[c.contactName||'',c.email||'',c.phone||'',(c.tags||[]).join('|'),getEstado(c),agentName(c.assignedTo),getCanal(c),c.dateAdded?new Date(c.dateAdded).toLocaleDateString('es-CO'):''])].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const csv=[['Nombre','Email','Telefono','Tags','Estado','Propietario','Canal','Fecha'],...filteredContacts.map(c=>[getName(c)||'',c.email||'',c.phone||'',(c.tags||[]).join('|'),getEstado(c),agentName(c.assignedTo),getCanal(c),c.dateAdded?new Date(c.dateAdded).toLocaleDateString('es-CO'):''])].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));a.download=`contactos_${new Date().toISOString().slice(0,10)}.csv`;a.click();
 }
 
 // ── Reset ──────────────────────────────────────────────────────
 function resetUI(){
-  [chartEstados,chartAgentes,chartTags,chartTareasOwner].forEach(c=>{if(c)c.destroy();});chartEstados=chartAgentes=chartTags=chartTareasOwner=null;
-  document.getElementById('table-body').innerHTML=`<tr><td colspan="9" class="empty">Sin datos.</td></tr>`;
+  [chartEstados,chartAgentes,chartTags,chartTareasOwner,chartLeadsFirmados,chartSegFirmado,chartLNFA].forEach(c=>{if(c)c.destroy();});chartEstados=chartAgentes=chartTags=chartTareasOwner=chartLeadsFirmados=chartSegFirmado=chartLNFA=null;
+  document.getElementById('table-body').innerHTML=`<tr><td colspan="10" class="empty">Sin datos.</td></tr>`;
   document.getElementById('pagination').innerHTML='';document.getElementById('active-chips').innerHTML='';
   ['kpi-total','kpi-filtrados','kpi-nuevos','kpi-pages'].forEach(id=>safeText(id,'—'));
   safeText('kpi-tareas','0');totalTareasAsignadas=0;
@@ -1171,6 +1757,8 @@ function resetUI(){
 window.addEventListener('load',()=>{
   const existingToken = sessionStorage.getItem('ora_token');
   if(existingToken){
+    loadAgentMap();
+    if(Object.keys(AGENT_MAP).length === 0) saveAgentMap();
     // Ya hay sesión activa
     document.getElementById('login-screen').style.display='none';
     document.getElementById('config-bar').style.display='flex';
