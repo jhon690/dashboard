@@ -927,6 +927,13 @@ function renderActiveChips(){
   if(q)chips.push({label:`Búsqueda: "${q}"`,clear:()=>{document.getElementById('search').value='';applyFilters();}});
   if(d1||d2)chips.push({label:d1&&d2?`📅 ${d1} → ${d2}`:d1?`📅 Desde ${d1}`:`📅 Hasta ${d2}`,clear:clearFecha});
   ['estado','tag','asignado','canal'].forEach(key=>selections[key].forEach(val=>chips.push({label:`${key}: ${val.length>18?val.substring(0,18)+'…':val}`,clear:()=>msToggle(key,val)})));
+  // Chip para filtro LNFA activo
+  if(lnfaAgentFilter){
+    chips.push({
+      label: `🏷 LNFA: ${lnfaAgentFilter.name}`,
+      clear: ()=>{ lnfaAgentFilter=null; applyFilters(); }
+    });
+  }
   if(!chips.length){container.innerHTML='';return;}
   container.innerHTML=`<span class="chip-label">Activos:</span>`+chips.map((ch,i)=>`<div class="chip">${ch.label}<span class="x" onclick="chipClear(${i})">✕</span></div>`).join('');
   window._chipClears=chips.map(c=>c.clear);
@@ -1043,7 +1050,18 @@ function toggleVerifDropdown(){
 
 function clearVerif(){ selectVerifOption(-1); }
 
-function clearAllFilters(){document.getElementById('search').value='';clearFecha();['estado','tag','asignado','canal'].forEach(key=>{selections[key].clear();if(msStates[key]){msStates[key].search='';updateMsTrigger(key);renderMsList(key);}});applyFilters();}
+function clearAllFilters(){
+  document.getElementById('search').value='';
+  clearFecha();
+  ['estado','tag','asignado','canal'].forEach(key=>{
+    selections[key].clear();
+    if(msStates[key]){msStates[key].search='';updateMsTrigger(key);renderMsList(key);}
+  });
+  clearTareas();
+  clearVerif();
+  lnfaAgentFilter = null;
+  applyFilters();
+}
 
 // ── Table ──────────────────────────────────────────────────────
 let bgTaskQueue = [];
