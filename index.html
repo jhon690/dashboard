@@ -462,6 +462,8 @@ function getCanal(c){ const a=c.attributions||[]; for(const x of a){if(x.medium)
 function getEstado(c){ const cf=(c.customFields||[]).find(f=>f.id===ESTADO_FIELD_ID); return (cf&&cf.value)?cf.value:'Sin estado'; }
 
 let allContacts=[], filteredContacts=[];
+let _noAplicaCache = null; // cache de cálculos No Aplica
+function invalidateNoAplicaCache(){ _noAplicaCache = null; }
 let minTareas = 0;
 let lnfaAgentFilter = null;
 let selectedVerifIdx = -1; // -1=todos, 0=verificado, 1=reasignado, 2=ambos, 3=sin verificar
@@ -563,7 +565,6 @@ async function autoAssignTasks(contacts){
 async function doLogin(){
   const input = document.getElementById('token-input');
   const token = input.value.trim();
-  console.log('Token ingresado:', token);
   if(!token || !token.startsWith('pit-')){
     document.getElementById('login-error').textContent = '⚠ Token inválido: "'+token.substring(0,10)+'..." Debe comenzar con pit-';
     return;
@@ -592,6 +593,7 @@ async function startDashboard(){
   const cached=loadCache();
   if(cached&&cached.contacts.length){
     allContacts=cached.contacts;
+    invalidateNoAplicaCache();
     const ts=cached.ts?new Date(cached.ts).toLocaleString('es-CO'):'?';
     safeText('last-update',ts);
     setStatus(`💾 ${allContacts.length} contactos desde caché. Sincronizando...`,'syncing');
@@ -604,6 +606,7 @@ async function startDashboard(){
     try{
       const {contacts,pages}=await fetchAllContacts();
       allContacts=contacts;
+      invalidateNoAplicaCache();
       saveCache(allContacts);
       const ts=new Date().toLocaleString('es-CO');
       safeText('last-update',ts);
@@ -765,7 +768,7 @@ function setDateShortcut(key){
   else if(key==='30d'){const d=new Date(hoy);d.setDate(d.getDate()-29);desde=d;hasta=hoy;}
   else if(key==='mes'){desde=new Date(hoy.getFullYear(),hoy.getMonth(),1);hasta=hoy;}
   else if(key==='mesant'){desde=new Date(hoy.getFullYear(),hoy.getMonth()-1,1);hasta=new Date(hoy.getFullYear(),hoy.getMonth(),0);}
-  else if(key==='inicio'){desde=new Date(2000,0,1);hasta=hoy;}
+  else if(key==='inicio'){desde=allContacts.length?new Date(allContacts.reduce((min,c)=>(!c.dateAdded||new Date(c.dateAdded)>=min)?min:new Date(c.dateAdded),new Date())):new Date(2000,0,1);hasta=hoy;}
   document.getElementById('fecha-desde').value=toInputDate(desde);
   document.getElementById('fecha-hasta').value=toInputDate(hasta);
   activeShortcut=key;
@@ -810,6 +813,7 @@ function applyFilters(){
   safeText('kpi-filtrados',filteredContacts.length);
   updateCharts();renderActiveChips();renderTable();
   updateTareasOwnerChart();updatePanelSinTareas();updateNoAplicaPanel();updateLeadsFirmadosChart();updateSegFirmadoChart();updateLNFAChart();
+  updateTabFilterIndicator();
 }
 
 // ── Charts ─────────────────────────────────────────────────────
@@ -1066,6 +1070,14 @@ function clearAllFilters(){
 // ── Table ──────────────────────────────────────────────────────
 let bgTaskQueue = [];
 let bgTaskRunning = false;
+let bgTaskPaused = false;
+
+function toggleTaskQueue(){
+  bgTaskPaused = !bgTaskPaused;
+  const btn = document.getElementById('btn-pause-tasks');
+  if(btn) btn.textContent = bgTaskPaused ? '▶' : '⏸';
+  if(!bgTaskPaused && !bgTaskRunning) runBgTaskQueue();
+}
 
 async function fetchOneTask(c){
   if(taskCache[c.id] !== undefined) return;
@@ -1117,10 +1129,16 @@ function updateNoAplicaPanel(){
     return [].concat(cf.value).some(v=>v.toLowerCase().includes('reasignado'));
   };
 
+  // Usar caché para no recalcular en cada render
+  if(!_noAplicaCache){
+    _noAplicaCache = {
+      totalVerif: allContacts.filter(hasVerif).length,
+      totalReasig: allContacts.filter(hasReasig).length,
+      totalAmbos: allContacts.filter(c=>hasVerif(c)&&hasReasig(c)).length
+    };
+  }
   const totalNoAplica = noAplicaContacts.length;
-  const totalVerif = allContacts.filter(hasVerif).length;
-  const totalReasig = allContacts.filter(hasReasig).length;
-  const totalAmbos = allContacts.filter(c=>hasVerif(c)&&hasReasig(c)).length;
+  const { totalVerif, totalReasig, totalAmbos } = _noAplicaCache;
 
   if(statsEl){
     const totalLeadsAll = allContacts.length;
@@ -1321,6 +1339,18 @@ function switchTab(name){
   if(btnEl) btnEl.classList.add('active');
   if(name==='analisis'){ setTimeout(()=>{ updateLeadsFirmadosChart(); updateSegFirmadoChart(); },50); }
   if(name==='overview'){ setTimeout(()=>{ updateCharts(); updateLNFAChart(); },50); }
+  updateTabFilterIndicator();
+}
+
+function updateTabFilterIndicator(){
+  const btn = document.querySelector('.tab-btn[onclick*="contactos"]');
+  if(!btn) return;
+  const hasFilters = selections.estado.size||selections.tag.size||selections.asignado.size||selections.canal.size||
+    selectedTareasIdx>=0||selectedVerifIdx>=0||lnfaAgentFilter||
+    document.getElementById('fecha-desde')?.value||document.getElementById('fecha-hasta')?.value||
+    document.getElementById('search')?.value;
+  btn.style.borderBottom = hasFilters ? '2px solid #f6ad55' : '';
+  btn.title = hasFilters ? '⚠ Hay filtros activos' : '';
 }
 
 function filterLNFA(){
@@ -1550,7 +1580,12 @@ function updateLeadsFirmadosChart(){
   safeText('lf-total-firmados', totalFirmados);
   safeText('lf-tasa', tasa);
 
-  if(!allDias.length) return;
+  if(!allDias.length){
+    if(chartLeadsFirmados){try{chartLeadsFirmados.destroy();}catch(e){}chartLeadsFirmados=null;}
+    const ctx=document.getElementById('chart-leads-firmados');
+    if(ctx){const c2=ctx.getContext('2d');c2.clearRect(0,0,ctx.width,ctx.height);c2.fillStyle='#718096';c2.font='14px sans-serif';c2.textAlign='center';c2.fillText('Sin datos en el período seleccionado',ctx.width/2,ctx.height/2||60);}
+    return;
+  }
 
   // Destruir chart anterior
   if(chartLeadsFirmados){ try{chartLeadsFirmados.destroy();}catch(e){} chartLeadsFirmados=null; }
@@ -1670,6 +1705,7 @@ async function runBgTaskQueue(){
   if(bgTaskRunning) return;
   bgTaskRunning = true;
   while(bgTaskQueue.length > 0){
+    if(bgTaskPaused){ bgTaskRunning=false; return; }
     const c = bgTaskQueue.shift();
     if(taskCache[c.id] !== undefined) continue; // ya cargado, skip
     await fetchOneTask(c);
