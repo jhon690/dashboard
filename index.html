@@ -233,10 +233,20 @@ tr.new-contact td { background: #1a2e1a !important; }
           <div style="font-size:1.1rem;font-weight:700;color:#f6ad55" id="lf-tasa">—</div>
         </div>
         <div style="background:#1e2235;border:1px solid #2d3748;border-radius:7px;padding:5px 10px;text-align:center">
-          <div style="font-size:0.65rem;color:#718096">No Aplica</div>
-          <div style="font-size:1.1rem;font-weight:700;color:#fc8181" id="lf-total-noapl">—</div>
-          <div style="font-size:0.65rem;color:#718096" id="lf-tasa-noapl">— %</div>
-        </div>
+            <div style="font-size:0.6rem;color:#718096;margin-bottom:3px">Fuera Rango</div>
+            <div style="font-size:1rem;font-weight:700;color:#fc8181" id="lf-noapl-rango">—</div>
+            <div style="font-size:0.6rem;color:#718096" id="lf-tasa-rango">—%</div>
+          </div>
+          <div style="background:#1e2235;border:1px solid #2d3748;border-radius:7px;padding:5px 10px;text-align:center">
+            <div style="font-size:0.6rem;color:#718096;margin-bottom:3px">Fuera Edad/Perfil</div>
+            <div style="font-size:1rem;font-weight:700;color:#fc8181" id="lf-noapl-edad">—</div>
+            <div style="font-size:0.6rem;color:#718096" id="lf-tasa-edad">—%</div>
+          </div>
+          <div style="background:#1e2235;border:1px solid #2d3748;border-radius:7px;padding:5px 10px;text-align:center">
+            <div style="font-size:0.6rem;color:#718096;margin-bottom:3px">Sin Medicare</div>
+            <div style="font-size:1rem;font-weight:700;color:#fc8181" id="lf-noapl-medicare">—</div>
+            <div style="font-size:0.6rem;color:#718096" id="lf-tasa-medicare">—%</div>
+          </div>
       </div>
       <canvas id="chart-leads-firmados" style="max-height:180px"></canvas>
     </div>
@@ -1586,14 +1596,18 @@ function updateLeadsFirmadosChart(){
     weekSort[key] = Math.min(weekSort[key]||Infinity, getWeekSort(c.dateAdded));
   });
 
-  const noapByWeek = {};
+  const noapRangoByWeek = {}, noapEdadByWeek = {}, noapMedicareByWeek = {};
   noAplica.forEach(c => {
     const key = getWeekKey(c.dateAdded);
-    noapByWeek[key] = (noapByWeek[key]||0) + 1;
     weekSort[key] = Math.min(weekSort[key]||Infinity, getWeekSort(c.dateAdded));
+    const est = getEstado(c);
+    if(est === 'No Aplica - Fuera Rango')           noapRangoByWeek[key]   = (noapRangoByWeek[key]||0)+1;
+    else if(est === 'No Aplica - Fuera Edad O Perfil') noapEdadByWeek[key] = (noapEdadByWeek[key]||0)+1;
+    else if(est === 'No Aplica - Sin Medicare')     noapMedicareByWeek[key] = (noapMedicareByWeek[key]||0)+1;
   });
 
-  const allDias = [...new Set([...Object.keys(leadsByWeek), ...Object.keys(firmadosByWeek), ...Object.keys(noapByWeek)])]
+  const allDias = [...new Set([...Object.keys(leadsByWeek), ...Object.keys(firmadosByWeek),
+    ...Object.keys(noapRangoByWeek), ...Object.keys(noapEdadByWeek), ...Object.keys(noapMedicareByWeek)])]
     .sort((a,b) => (weekSort[a]||0)-(weekSort[b]||0));
 
   // KPIs con totales reales (todos los firmados en allContacts, no solo en rango)
@@ -1603,9 +1617,13 @@ function updateLeadsFirmadosChart(){
   safeText('lf-total-leads', totalLeads);
   safeText('lf-total-firmados', totalFirmados);
   safeText('lf-tasa', tasa);
-  const tasaNoapl = totalLeads > 0 ? ((noAplica.length/totalLeads)*100).toFixed(1)+'%' : '0%';
-  safeText('lf-total-noapl', noAplica.length);
-  safeText('lf-tasa-noapl', tasaNoapl+' vs leads');
+  const noapRango   = inRange.filter(c=>getEstado(c)==='No Aplica - Fuera Rango').length;
+  const noapEdad    = inRange.filter(c=>getEstado(c)==='No Aplica - Fuera Edad O Perfil').length;
+  const noapMedicare= inRange.filter(c=>getEstado(c)==='No Aplica - Sin Medicare').length;
+  const pct = n => totalLeads>0?((n/totalLeads)*100).toFixed(1)+'%':'0%';
+  safeText('lf-noapl-rango',    noapRango);    safeText('lf-tasa-rango',    pct(noapRango));
+  safeText('lf-noapl-edad',     noapEdad);     safeText('lf-tasa-edad',     pct(noapEdad));
+  safeText('lf-noapl-medicare', noapMedicare); safeText('lf-tasa-medicare', pct(noapMedicare));
 
   if(!allDias.length){
     if(chartLeadsFirmados){try{chartLeadsFirmados.destroy();}catch(e){}chartLeadsFirmados=null;}
@@ -1650,15 +1668,28 @@ function updateLeadsFirmadosChart(){
           borderWidth: 2
         },
         {
-          label: 'No Aplica',
-          data: allDias.map(d => noapByWeek[d]||0),
+          label: 'Fuera Rango',
+          data: allDias.map(d => noapRangoByWeek[d]||0),
           borderColor: '#fc8181',
           backgroundColor: '#fc818122',
-          tension: 0.4,
-          fill: false,
-          pointRadius: 3,
-          pointHoverRadius: 6,
-          borderWidth: 2
+          tension: 0.4, fill: false,
+          pointRadius: 3, pointHoverRadius: 6, borderWidth: 2
+        },
+        {
+          label: 'Fuera Edad/Perfil',
+          data: allDias.map(d => noapEdadByWeek[d]||0),
+          borderColor: '#f6ad55',
+          backgroundColor: '#f6ad5522',
+          tension: 0.4, fill: false,
+          pointRadius: 3, pointHoverRadius: 6, borderWidth: 2
+        },
+        {
+          label: 'Sin Medicare',
+          data: allDias.map(d => noapMedicareByWeek[d]||0),
+          borderColor: '#fc63ff',
+          backgroundColor: '#fc63ff22',
+          tension: 0.4, fill: false,
+          pointRadius: 3, pointHoverRadius: 6, borderWidth: 2
         }
       ]
     },
@@ -1670,8 +1701,19 @@ function updateLeadsFirmadosChart(){
         tooltip: { callbacks: {
           afterBody: (items) => {
             const leads = items.find(i=>i.datasetIndex===0)?.raw||0;
-            const firm = items.find(i=>i.datasetIndex===1)?.raw||0;
-            return leads > 0 ? ['Tasa: '+(firm/leads*100).toFixed(1)+'%'] : [];
+            const firm  = items.find(i=>i.datasetIndex===1)?.raw||0;
+            const rango = items.find(i=>i.datasetIndex===2)?.raw||0;
+            const edad  = items.find(i=>i.datasetIndex===3)?.raw||0;
+            const medic = items.find(i=>i.datasetIndex===4)?.raw||0;
+            const lines = [];
+            if(leads>0) lines.push('Tasa cierre: '+(firm/leads*100).toFixed(1)+'%');
+            if(leads>0 && (rango||edad||medic)){
+              lines.push('─────────────────');
+              if(rango) lines.push('Fuera Rango: '+rango+' ('+((rango/leads)*100).toFixed(1)+'%)');
+              if(edad)  lines.push('Fuera Edad/Perfil: '+edad+' ('+((edad/leads)*100).toFixed(1)+'%)');
+              if(medic) lines.push('Sin Medicare: '+medic+' ('+((medic/leads)*100).toFixed(1)+'%)');
+            }
+            return lines;
           }
         }}
       },
