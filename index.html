@@ -235,6 +235,7 @@ tr.new-contact td { background: #1a2e1a !important; }
         <div style="background:#1e2235;border:1px solid #2d3748;border-radius:7px;padding:5px 10px;text-align:center">
           <div style="font-size:0.65rem;color:#718096">No Aplica</div>
           <div style="font-size:1.1rem;font-weight:700;color:#fc8181" id="lf-total-noapl">—</div>
+          <div style="font-size:0.65rem;color:#718096" id="lf-tasa-noapl">— %</div>
         </div>
       </div>
       <canvas id="chart-leads-firmados" style="max-height:180px"></canvas>
@@ -264,10 +265,6 @@ tr.new-contact td { background: #1a2e1a !important; }
         <div style="background:#1e2235;border:1px solid #2d3748;border-radius:7px;padding:5px 10px;text-align:center">
           <div style="font-size:0.65rem;color:#718096">Conversión</div>
           <div style="font-size:1.1rem;font-weight:700;color:#f6ad55" id="sf-tasa">—</div>
-        </div>
-        <div style="background:#1e2235;border:1px solid #2d3748;border-radius:7px;padding:5px 10px;text-align:center">
-          <div style="font-size:0.65rem;color:#718096">No Aplica</div>
-          <div style="font-size:1.1rem;font-weight:700;color:#fc8181" id="sf-total-noapl">—</div>
         </div>
       </div>
       <canvas id="chart-seg-firmado" style="max-height:180px"></canvas>
@@ -1464,14 +1461,7 @@ function updateSegFirmadoChart(){
     weekSort[k]=Math.min(weekSort[k]||Infinity,getWeekSort(c.dateAdded));
   });
 
-  const noapByWeek={};
-  noAplica.forEach(c=>{
-    const k=getWeekKey(c.dateAdded);
-    noapByWeek[k]=(noapByWeek[k]||0)+1;
-    weekSort[k]=Math.min(weekSort[k]||Infinity,getWeekSort(c.dateAdded));
-  });
-
-  const allWeeks=[...new Set([...Object.keys(segByWeek),...Object.keys(firmByWeek),...Object.keys(noapByWeek)])]
+  const allWeeks=[...new Set([...Object.keys(segByWeek),...Object.keys(firmByWeek)])]
     .sort((a,b)=>(weekSort[a]||0)-(weekSort[b]||0));
 
   const totalSeg=seguimientos.length;
@@ -1480,7 +1470,6 @@ function updateSegFirmadoChart(){
   safeText('sf-total-seguimiento',totalSeg);
   safeText('sf-total-firmado',totalFirm);
   safeText('sf-tasa',tasa);
-  safeText('sf-total-noapl', noAplica.length);
 
   if(chartSegFirmado){try{chartSegFirmado.destroy();}catch(e){}chartSegFirmado=null;}
   const orphan=Chart.getChart('chart-seg-firmado');
@@ -1509,14 +1498,6 @@ function updateSegFirmadoChart(){
           backgroundColor:'#68d39133',
           tension:0.2,fill:false,
           pointRadius:5,pointHoverRadius:8,borderWidth:2.5
-        },
-        {
-          label:'No Aplica',
-          data:allWeeks.map(w=>noapByWeek[w]||0),
-          borderColor:'#fc8181',
-          backgroundColor:'#fc818122',
-          tension:0.2,fill:false,
-          pointRadius:4,pointHoverRadius:7,borderWidth:2
         }
       ]
     },
@@ -1622,7 +1603,9 @@ function updateLeadsFirmadosChart(){
   safeText('lf-total-leads', totalLeads);
   safeText('lf-total-firmados', totalFirmados);
   safeText('lf-tasa', tasa);
+  const tasaNoapl = totalLeads > 0 ? ((noAplica.length/totalLeads)*100).toFixed(1)+'%' : '0%';
   safeText('lf-total-noapl', noAplica.length);
+  safeText('lf-tasa-noapl', tasaNoapl+' vs leads');
 
   if(!allDias.length){
     if(chartLeadsFirmados){try{chartLeadsFirmados.destroy();}catch(e){}chartLeadsFirmados=null;}
